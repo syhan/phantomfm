@@ -1,4 +1,7 @@
-#! /bin/bash
+#!/bin/bash
+
+echo $$ > .pid
+echo $PPID > .ppid
 
 source cred.sh
 
@@ -40,20 +43,33 @@ play() {
   fi
 
   echo "downloading $name"
-  curl -s $url -o /tmp/$1.mp3
+  curl -s $url -o .$1.mp3
 
   echo "playing $name"
-  mpg321 -x /tmp/$1.mp3
+  mpg321 -x .$1.mp3
 
   echo "scrobbling $name"
   curl -s -b cookie.txt "${NETEASE_MUSIC_API}/scrobble?id=$1&sourceid=$albumid"
 
-  rm -f .check.json .url.json .detail.json /tmp/$1.mp3
+  rm -f .check.json .url.json .detail.json .$1.mp3
   return 0
 }
 
 NETEASE_ID=`jq -r '.account.id' .login.json`
 
-curl -s -b cookie.txt "${NETEASE_MUSIC_API}/likelist?uid=${NETEASE_ID}" | jq -r '.ids' | awk 'NR>2 {print last} {last=$0}' | sed -r 's/,$//g' | sed -r 's/^ +//g' | shuf | while read id; do
-  play $id
-done
+likelist() {
+  curl -s -b cookie.txt "${NETEASE_MUSIC_API}/likelist?uid=${NETEASE_ID}" | jq -r '.ids' | awk 'NR>2 {print last} {last=$0}' | sed -r 's/,$//g' | sed -r 's/^ +//g' | shuf | while read id; do
+    play $id
+  done
+}
+
+album() {
+  curl -s "${NETEASE_MUSIC_API}/album?id=$1" > .album.$1.json
+  jq -r '.songs | sort_by(.no)[] | .id' .album.$1.json | while read id; do
+    play $id
+  done
+
+  rm -f .album.$1.json
+}
+
+album `jq -r ".\"$1\"" tags.json`
