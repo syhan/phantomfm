@@ -2,3 +2,5 @@ cred.sh
 cookie.txt
 .*.json
 .*.mp3
+.pid
+.ppid
