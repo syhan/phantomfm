@@ -4,3 +4,4 @@ cookie.txt
 .*.mp3
 .pid
 .ppid
+.cache/
