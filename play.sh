@@ -33,13 +33,12 @@ play() {
     curl -s "${NETEASE_MUSIC_API}/check/music?id=$1" > .cache/$1.check.json
 
     jq -r '.message' .cache/$1.check.json
-    if [[ `jq -r '.success' .check.json` -ne 'true' ]]; then
-      rm .check.json
+    if [[ `jq -r '.success' .cache/$1.check.json` -ne 'true' ]]; then
+      rm .cache/$1.check.json
       return -1
     fi
 
     curl -s "${NETEASE_MUSIC_API}/song/detail?ids=$1" > .cache/$1.detail.json
-
 
     albumid=`jq -r '.songs[0].al.id' .cache/$1.detail.json`
     name=`jq -r '.songs[0].name' .cache/$1.detail.json`
@@ -76,7 +75,10 @@ favorite() {
 }
 
 album() {
-  curl -s "${NETEASE_MUSIC_API}/album?id=$1" > .cache/$1.album.json
+  if [[ ! -f .cache/$1.album.json ]]; then
+    curl -s "${NETEASE_MUSIC_API}/album?id=$1" > .cache/$1.album.json
+  fi
+  
   jq -r '.songs | sort_by(.no)[] | .id' .cache/$1.album.json | while read id; do
     play $id
   done
